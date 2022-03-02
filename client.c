@@ -22,7 +22,8 @@ void write_to_sock(int sockfd, unsigned char *img, int width, int height, int ch
         for (int y = 0; y <= height; y++)
         {
             bzero(buffer, 256);
-            sprintf(buffer, "PX %d %d %02x%02x%02x\n", x + xoffset, y + yoffset, img[(x + y * width) * channels], img[(x + y * width) * channels + 1], img[(x + y * width) * channels + 2]);
+            // sprintf(buffer, "PX %d %d %02x%02x%02x\n", x + xoffset, y + yoffset, img[(x + y * width) * channels], img[(x + y * width) * channels + 1], img[(x + y * width) * channels + 2]);
+            sprintf(buffer, "PX %d %d 00ff00\n", x + xoffset, y + yoffset);
             if (write(sockfd, buffer, strlen(buffer)) < 0)
                 printf("ERROR writing to socket\n");
         }

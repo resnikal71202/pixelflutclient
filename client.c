@@ -11,7 +11,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
-struct arg_struct{
+struct arg_struct
+{
     int sockfd;
     char *buf;
     int buflen;
@@ -51,22 +52,31 @@ int main(int argc, char *argv[])
         for (int y = 0; y <= height; y++)
         {
             char temp[25];
-            sprintf(temp, "PX %d %d %02x%02x%02x\n", x + xoffset, y + yoffset, img[(x + y * width) * channels], img[(x + y * width) * channels + 1], img[(x + y * width) * channels + 2]);
-            int diff = strlen(temp);
+            if (img[(x + y * width) * channels] != 0 && img[(x + y * width) * channels + 1] != 0 && img[(x + y * width) * channels + 2] != 0)
+            {
+                sprintf(temp, "PX %d %d %02x%02x%02x\n", x + xoffset, y + yoffset, img[(x + y * width) * channels], img[(x + y * width) * channels + 1], img[(x + y * width) * channels + 2]);
+                int diff = strlen(temp);
+                // printf("%s", temp);
+                bufflen += diff;
+                buff = realloc(buff, bufflen);
+                memcpy(&(buff[bufflen - diff]), &temp, diff);
+            }
+            // sprintf(temp, "PX %d %d %02x%02x%02x\n", x + xoffset, y + yoffset, img[(x + y * width) * channels], img[(x + y * width) * channels + 1], img[(x + y * width) * channels + 2]);
+            // int diff = strlen(temp);
             // printf("%s", temp);
-            bufflen += diff;
-            buff = realloc(buff, bufflen);
-            memcpy(&(buff[bufflen - diff]), &temp, diff);
+            // bufflen += diff;
+            // buff = realloc(buff, bufflen);
+            // memcpy(&(buff[bufflen - diff]), &temp, diff);
         }
     }
-    // printf("%s\n", buff);
+    printf("%s\n", buff);
     struct addrinfo hints, *server;
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     getaddrinfo(argv[4], argv[5], &hints, &server);
 
-    for (int i = 2; i > 0; i--)
+    for (int i = argv[6]; i > 0; i--)
     {
         pthread_t some_thread;
         struct arg_struct arg;
@@ -81,12 +91,13 @@ int main(int argc, char *argv[])
         // int retval = write(sockfd, buff, bufflen);
         // printf("test\n");
         // printf("%d\n", retval);
+        sleep(1);
     }
-    
+
     while (!sig_exit)
     {
     }
-    
+
     // shutdown(sockfd, 2);
     // close(sockfd);
 }

@@ -4,57 +4,89 @@
 #include <signal.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <fcntl.h>  // for open
+#include <unistd.h> // for close
+#include <pthread.h>
 #include <netdb.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
+struct arg_struct{
+    int sockfd;
+    char *buf;
+    int buflen;
+};
+
 volatile uint8_t sig_exit = 0;
 
-void siginthandler(){
+void siginthandler()
+{
     sig_exit = 1;
 }
 
-void write_to_sock(int sockfd, unsigned char *img, int width, int height, int channels, int xoffset, int yoffset)
+void write_to_sock(struct arg_struct *arg)
 {
-    char buffer[256];
-    for (int x = 0; x <= width; x++)
+    while (!sig_exit)
     {
-        for (int y = 0; y <= height; y++)
-        {
-            bzero(buffer, 256);
-            // sprintf(buffer, "PX %d %d %02x%02x%02x\n", x + xoffset, y + yoffset, img[(x + y * width) * channels], img[(x + y * width) * channels + 1], img[(x + y * width) * channels + 2]);
-            sprintf(buffer, "PX %d %d 00ff00\n", x + xoffset, y + yoffset);
-            if (write(sockfd, buffer, strlen(buffer)) < 0)
-                printf("ERROR writing to socket\n");
-        }
+        write(arg->sockfd, arg->buf, arg->buflen);
     }
+    shutdown(arg->sockfd, 2);
+    close(arg->sockfd);
 }
 
 int main(int argc, char *argv[])
 {
     signal(SIGINT, siginthandler);
 
-    int xoffset = atoi(argv[4]);
-    int yoffset = atoi(argv[5]);
+    int xoffset = atoi(argv[2]);
+    int yoffset = atoi(argv[3]);
 
     int width, height, channels;
-    unsigned char *img = stbi_load(argv[3], &width, &height, &channels, 0);
+    unsigned char *img = stbi_load(argv[1], &width, &height, &channels, 0);
+    size_t bufflen = 0;
+    char *buff = malloc(sizeof(char) * bufflen);
 
+    for (int x = 0; x <= width; x++)
+    {
+        for (int y = 0; y <= height; y++)
+        {
+            char temp[25];
+            sprintf(temp, "PX %d %d %02x%02x%02x\n", x + xoffset, y + yoffset, img[(x + y * width) * channels], img[(x + y * width) * channels + 1], img[(x + y * width) * channels + 2]);
+            int diff = strlen(temp);
+            // printf("%s", temp);
+            bufflen += diff;
+            buff = realloc(buff, bufflen);
+            memcpy(&(buff[bufflen - diff]), &temp, diff);
+        }
+    }
+    // printf("%s\n", buff);
     struct addrinfo hints, *server;
-    int sockfd;
-
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
+    getaddrinfo(argv[4], argv[5], &hints, &server);
 
-    getaddrinfo(argv[1], argv[2], &hints, &server);
-
-    sockfd = socket(server->ai_family, server->ai_socktype, server->ai_protocol);
-
-    connect(sockfd, server->ai_addr, server->ai_addrlen);
-    while(!sig_exit){
-        write_to_sock(sockfd, &img[0], width, height, channels, xoffset, yoffset);
+    for (int i = 2; i > 0; i--)
+    {
+        pthread_t some_thread;
+        struct arg_struct arg;
+        int sockfd = socket(server->ai_family, server->ai_socktype, server->ai_protocol);
+        connect(sockfd, server->ai_addr, server->ai_addrlen);
+        arg.sockfd = sockfd;
+        arg.buf = buff;
+        arg.buflen = bufflen;
+        pthread_create(&some_thread, NULL, &write_to_sock, &arg);
+        // write_to_sock(&arg);
+        // printf("test\n");
+        // int retval = write(sockfd, buff, bufflen);
+        // printf("test\n");
+        // printf("%d\n", retval);
     }
-    shutdown(sockfd, 2);
-    close(sockfd);
+    
+    while (!sig_exit)
+    {
+    }
+    
+    // shutdown(sockfd, 2);
+    // close(sockfd);
 }

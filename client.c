@@ -54,29 +54,22 @@ int main(int argc, char *argv[])
             char temp[25];
             if (img[(x + y * width) * channels] != 0 && img[(x + y * width) * channels + 1] != 0 && img[(x + y * width) * channels + 2] != 0)
             {
-                sprintf(temp, "PX %d %d %02x%02x%02x\n", x + xoffset, y + yoffset, img[(x + y * width) * channels], img[(x + y * width) * channels + 1], img[(x + y * width) * channels + 2]);
+                snprintf(temp, 25, "PX %d %d %02x%02x%02x\n", x + xoffset, y + yoffset, img[(x + y * width) * channels], img[(x + y * width) * channels + 1], img[(x + y * width) * channels + 2]);
                 int diff = strlen(temp);
-                // printf("%s", temp);
                 bufflen += diff;
                 buff = realloc(buff, bufflen);
                 memcpy(&(buff[bufflen - diff]), &temp, diff);
             }
-            // sprintf(temp, "PX %d %d %02x%02x%02x\n", x + xoffset, y + yoffset, img[(x + y * width) * channels], img[(x + y * width) * channels + 1], img[(x + y * width) * channels + 2]);
-            // int diff = strlen(temp);
-            // printf("%s", temp);
-            // bufflen += diff;
-            // buff = realloc(buff, bufflen);
-            // memcpy(&(buff[bufflen - diff]), &temp, diff);
         }
     }
-    printf("%s\n", buff);
+
     struct addrinfo hints, *server;
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     getaddrinfo(argv[4], argv[5], &hints, &server);
 
-    for (int i = argv[6]; i > 0; i--)
+    for (int i = strtol(argv[6], NULL, 10); i > 0; i--)
     {
         pthread_t some_thread;
         struct arg_struct arg;
@@ -85,19 +78,11 @@ int main(int argc, char *argv[])
         arg.sockfd = sockfd;
         arg.buf = buff;
         arg.buflen = bufflen;
-        pthread_create(&some_thread, NULL, &write_to_sock, &arg);
-        // write_to_sock(&arg);
-        // printf("test\n");
-        // int retval = write(sockfd, buff, bufflen);
-        // printf("test\n");
-        // printf("%d\n", retval);
-        sleep(1);
+        pthread_create(&some_thread, NULL, (void *)&write_to_sock, &arg);
     }
 
     while (!sig_exit)
     {
     }
 
-    // shutdown(sockfd, 2);
-    // close(sockfd);
 }

@@ -8,8 +8,7 @@
 #include <unistd.h> // for close
 #include <pthread.h>
 #include <netdb.h>
-#define STB_IMAGE_IMPLEMENTATION
-#include "stb/stb_image.h"
+#include "img.h"
 
 struct arg_struct
 {
@@ -35,49 +34,42 @@ void write_to_sock(struct arg_struct *arg)
     close(arg->sockfd);
 }
 
+
 int main(int argc, char *argv[])
 {
     signal(SIGINT, siginthandler);
 
+    struct img img = get_img(argv[1]);
     int xoffset = atoi(argv[2]);
     int yoffset = atoi(argv[3]);
 
-    int width, height, channels;
-    unsigned char *img = stbi_load(argv[1], &width, &height, &channels, 0);
-    size_t bufflen = 0;
-    char *buff = malloc(sizeof(char) * bufflen);
+    long num_threads = strtol(argv[6], NULL, 10);
 
-    for (int x = 0; x <= width; x++)
-    {
-        for (int y = 0; y <= height; y++)
-        {
-            char temp[25];
-            if (img[(x + y * width) * channels] != 0 && img[(x + y * width) * channels + 1] != 0 && img[(x + y * width) * channels + 2] != 0)
-            {
-                snprintf(temp, 25, "PX %d %d %02x%02x%02x\n", x + xoffset, y + yoffset, img[(x + y * width) * channels], img[(x + y * width) * channels + 1], img[(x + y * width) * channels + 2]);
-                int diff = strlen(temp);
-                bufflen += diff;
-                buff = realloc(buff, bufflen);
-                memcpy(&(buff[bufflen - diff]), &temp, diff);
-            }
-        }
-    }
+    // printf("%d\n", num_threads);
 
     struct addrinfo hints, *server;
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;
     getaddrinfo(argv[4], argv[5], &hints, &server);
+    
 
-    for (int i = strtol(argv[6], NULL, 10); i > 0; i--)
+
+    for (int i = num_threads; i > 0; i--)
     {
         pthread_t some_thread;
         struct arg_struct arg;
         int sockfd = socket(server->ai_family, server->ai_socktype, server->ai_protocol);
         connect(sockfd, server->ai_addr, server->ai_addrlen);
         arg.sockfd = sockfd;
-        arg.buf = buff;
-        arg.buflen = bufflen;
+        int start = (img.width/num_threads) * (i-1);
+        int stop = (img.width/num_threads) * i;
+        struct img_string imgstr = img_to_string(img, start, stop, 0, img.height, xoffset, yoffset);
+        
+        // printf("%d, %d\n", start, stop);
+
+        arg.buf = imgstr.buff;
+        arg.buflen = imgstr.len;
         pthread_create(&some_thread, NULL, (void *)&write_to_sock, &arg);
     }
 

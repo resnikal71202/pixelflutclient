@@ -2,8 +2,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <sys/poll.h>
 #include <fcntl.h>  // for open
 #include <unistd.h> // for close
 #include <pthread.h>
@@ -27,10 +30,23 @@ void siginthandler()
 
 void write_to_sock(struct arg_struct *arg)
 {
+    int epfd =
+
+
     while (!sig_exit)
     {
-        write(arg->sockfd, arg->buf, arg->buflen);
+        temp = select(5, NULL, &fds, NULL, NULL);
+        printf("%d\n", temp);
+        if (temp != -1)
+        {
+            status = send(arg->sockfd, arg->buf, arg->buflen, MSG_NOSIGNAL);
+            if (status > 0)
+            {
+                fprintf(stderr, "Error %d, %d:\n", errno, status);
+            }
+        }
     }
+    printf("exiting\n");
     shutdown(arg->sockfd, 2);
     close(arg->sockfd);
 }
@@ -84,5 +100,4 @@ int main(int argc, char *argv[])
     while (!sig_exit)
     {
     }
-
 }

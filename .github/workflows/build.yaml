@@ -34,7 +34,7 @@ jobs:
       run: |
         brew update
         brew install gcc
-        brew install arm-linux-gnu-gcc
+        brew install arm-none-eabi-gcc
 
     - name: Set up build environment on Windows
       if: matrix.os == 'windows-latest'
@@ -57,7 +57,7 @@ jobs:
 
     - name: Build for ARM on macOS
       if: matrix.arch == 'arm64' && matrix.os == 'macos-latest'
-      run: arm-linux-gnu-gcc -Wall -O0 client.c -lm -o client-arm
+      run: arm-none-eabi-gcc -Wall -O0 client.c -lm -o client-arm
 
     - name: Build for x86 on Windows
       if: matrix.arch == 'x64' && matrix.os == 'windows-latest'

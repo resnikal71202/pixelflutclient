@@ -9,6 +9,7 @@
   #pragma comment(lib, "ws2_32.lib")
   typedef int socklen_t;
   #define close closesocket
+  #define write(fd, buf, len) send(fd, buf, len, 0)
 #else
   #include <sys/types.h>
   #include <sys/socket.h>
@@ -44,7 +45,7 @@ int main(int argc, char *argv[])
 {
 #ifdef _WIN32
     WSADATA wsa;
-    WSAStartup(MAKEWORD(2,2),&wsa);
+    WSAStartup(MAKEWORD(2,2), &wsa);
 #else
     signal(SIGINT, siginthandler);
 #endif

@@ -43,8 +43,6 @@ jobs:
         install: >-
           mingw-w64-x86_64-gcc
           mingw-w64-i686-gcc
-          mingw-w64-aarch64-gcc
-          mingw-w64-armv7-gcc
         msystem: MINGW64
 
     - name: Build for x86 on Linux and macOS
@@ -63,9 +61,9 @@ jobs:
       if: matrix.arch == 'x64' && matrix.os == 'windows-latest'
       run: gcc -Wall -O0 client.c -lm -o client.exe
 
-    - name: Build for ARM on Windows
+    - name: Skip ARM build on Windows
       if: matrix.arch == 'arm64' && matrix.os == 'windows-latest'
-      run: aarch64-w64-mingw32-gcc -Wall -O0 client.c -lm -o client.exe
+      run: echo "ARM build not supported on Windows"
 
     - name: Archive build artifacts
       uses: actions/upload-artifact@v2

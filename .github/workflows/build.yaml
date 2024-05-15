@@ -48,19 +48,19 @@ jobs:
 
     - name: Build for x86 on Linux and macOS
       if: matrix.arch == 'x64' && matrix.os != 'windows-latest'
-      run: gcc -Wall -O0 client.c -lm
+      run: gcc -Wall -O0 client.c -lm -lpthread -o client
 
     - name: Build for ARM on Linux
       if: matrix.arch == 'arm64' && matrix.os == 'ubuntu-latest'
-      run: aarch64-linux-gnu-gcc -Wall -O0 client.c -lm -o client-arm
+      run: aarch64-linux-gnu-gcc -Wall -O0 client.c -lm -lpthread -o client-arm
 
     - name: Build for ARM on macOS
       if: matrix.arch == 'arm64' && matrix.os == 'macos-latest'
-      run: aarch64-unknown-linux-gnu-gcc -Wall -O0 client.c -lm -o client-arm
+      run: aarch64-unknown-linux-gnu-gcc -Wall -O0 client.c -lm -lpthread -o client-arm
 
     - name: Build for x86 on Windows
       if: matrix.arch == 'x64' && matrix.os == 'windows-latest'
-      run: gcc -Wall -O0 client.c -lm -o client.exe
+      run: gcc -Wall -O0 client.c -lm -lpthread -o client.exe
 
     - name: Skip ARM build on Windows
       if: matrix.arch == 'arm64' && matrix.os == 'windows-latest'

@@ -1,51 +1,71 @@
-name: C/C++ CI
-
-on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
-
-jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        arch: [x86, arm]
-
-    steps:
-    - uses: actions/checkout@v2
-      with:
-        submodules: true  # Initialize and update submodules
-
-    - name: Initialize submodules
-      run: git submodule update --init --recursive
-
-    - name: Set up dependencies on Ubuntu
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y gcc g++ curl
-
-    - name: Set up dependencies on Windows
-      if: matrix.os == 'windows-latest'
-      run: |
-        choco install visualstudio2019community
-        choco install visualstudio2019buildtools
-
-    - name: Set up dependencies on macOS
-      if: matrix.os == 'macos-latest'
-      run: brew install gcc
-
-    - name: Build on Ubuntu
-      if: matrix.os == 'ubuntu-latest'
-      run: gcc -Wall -O0 -pthread -o client client.c -lm
-
-    - name: Build on Windows
-      if: matrix.os == 'windows-latest'
-      run: cl /EHsc /W4 /Od client.c /Fe:client.exe
-
-    - name: Build on macOS
-      if: matrix.os == 'macos-latest'
-      run: gcc -Wall -O0 -pthread -o client client.c -lm
+]stages:
+    - build
+  
+  variables:
+    BUILD_DIR: build
+  
+  before_script:
+    - git submodule update --init --recursive
+  
+  build_linux_x86:
+    stage: build
+    image: gcc:latest
+    script:
+      - mkdir -p $BUILD_DIR
+      - gcc -Wall -O0 client.c -lm -o $BUILD_DIR/client_linux_x86
+    artifacts:
+      paths:
+        - $BUILD_DIR/client_linux_x86
+  
+  build_linux_arm:
+    stage: build
+    image: multiarch/crossbuild:latest
+    script:
+      - mkdir -p $BUILD_DIR
+      - /usr/local/bin/qemu-arm-static gcc -Wall -O0 client.c -lm -o $BUILD_DIR/client_linux_arm
+    artifacts:
+      paths:
+        - $BUILD_DIR/client_linux_arm
+  
+  build_windows_x86:
+    stage: build
+    image: gcc:latest
+    script:
+      - mkdir -p $BUILD_DIR
+      - x86_64-w64-mingw32-gcc -Wall -O0 client.c -lm -o $BUILD_DIR/client_windows_x86.exe
+    artifacts:
+      paths:
+        - $BUILD_DIR/client_windows_x86.exe
+  
+  build_windows_arm:
+    stage: build
+    image: gcc:latest
+    script:
+      - mkdir -p $BUILD_DIR
+      - arm-none-eabi-gcc -Wall -O0 client.c -lm -o $BUILD_DIR/client_windows_arm.exe
+    artifacts:
+      paths:
+        - $BUILD_DIR/client_windows_arm.exe
+  
+  build_macos_x86:
+    stage: build
+    tags:
+      - macos
+    script:
+      - mkdir -p $BUILD_DIR
+      - gcc -Wall -O0 client.c -lm -o $BUILD_DIR/client_macos_x86
+    artifacts:
+      paths:
+        - $BUILD_DIR/client_macos_x86
+  
+  build_macos_arm:
+    stage: build
+    tags:
+      - macos
+    script:
+      - mkdir -p $BUILD_DIR
+      - gcc -Wall -O0 client.c -lm -o $BUILD_DIR/client_macos_arm
+    artifacts:
+      paths:
+        - $BUILD_DIR/client_macos_arm
+  

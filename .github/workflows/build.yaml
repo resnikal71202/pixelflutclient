@@ -27,13 +27,14 @@ jobs:
       if: matrix.os == 'ubuntu-latest'
       run: |
         sudo apt-get update
-        sudo apt-get install -y gcc-multilib g++-multilib
+        sudo apt-get install -y gcc g++ gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
     - name: Set up build environment on macOS
       if: matrix.os == 'macos-latest'
       run: |
         brew update
         brew install gcc
+        brew install arm-linux-gnu-gcc
 
     - name: Set up build environment on Windows
       if: matrix.os == 'windows-latest'
@@ -50,19 +51,21 @@ jobs:
       if: matrix.arch == 'x64' && matrix.os != 'windows-latest'
       run: gcc -Wall -O0 client.c -lm
 
-    - name: Build for ARM on Linux and macOS
-      if: matrix.arch == 'arm64' && matrix.os != 'windows-latest'
-      run: gcc -Wall -O0 -march=armv8-a client.c -lm
+    - name: Build for ARM on Linux
+      if: matrix.arch == 'arm64' && matrix.os == 'ubuntu-latest'
+      run: aarch64-linux-gnu-gcc -Wall -O0 client.c -lm -o client-arm
+
+    - name: Build for ARM on macOS
+      if: matrix.arch == 'arm64' && matrix.os == 'macos-latest'
+      run: arm-linux-gnu-gcc -Wall -O0 client.c -lm -o client-arm
 
     - name: Build for x86 on Windows
       if: matrix.arch == 'x64' && matrix.os == 'windows-latest'
-      run: |
-        gcc -Wall -O0 client.c -lm -o client.exe
+      run: gcc -Wall -O0 client.c -lm -o client.exe
 
     - name: Build for ARM on Windows
       if: matrix.arch == 'arm64' && matrix.os == 'windows-latest'
-      run: |
-        gcc -Wall -O0 -march=armv8-a client.c -lm -o client.exe
+      run: aarch64-w64-mingw32-gcc -Wall -O0 client.c -lm -o client.exe
 
     - name: Archive build artifacts
       uses: actions/upload-artifact@v2
@@ -71,3 +74,4 @@ jobs:
         path: |
           client.exe
           client
+          client-arm

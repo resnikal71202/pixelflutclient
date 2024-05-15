@@ -18,7 +18,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v4
 
     - name: Update submodules
       run: git submodule update --init --recursive
@@ -67,7 +67,7 @@ jobs:
       run: echo "ARM build not supported on Windows"
 
     - name: Archive build artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.os }}-${{ matrix.arch }}
         path: |

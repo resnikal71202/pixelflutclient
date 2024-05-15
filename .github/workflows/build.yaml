@@ -82,6 +82,36 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: ubuntu-latest-x64
+        path: ./artifacts
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: ubuntu-latest-arm64
+        path: ./artifacts
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: macos-latest-x64
+        path: ./artifacts
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: macos-latest-arm64
+        path: ./artifacts
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: windows-latest-x64
+        path: ./artifacts
+
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -99,7 +129,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: client
+        asset_path: ./artifacts/client
         asset_name: client-linux-x64
         asset_content_type: application/octet-stream
 
@@ -109,7 +139,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: client-arm
+        asset_path: ./artifacts/client-arm
         asset_name: client-linux-arm64
         asset_content_type: application/octet-stream
 
@@ -119,7 +149,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: client
+        asset_path: ./artifacts/client
         asset_name: client-macos-x64
         asset_content_type: application/octet-stream
 
@@ -129,7 +159,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: client-arm
+        asset_path: ./artifacts/client-arm
         asset_name: client-macos-arm64
         asset_content_type: application/octet-stream
 
@@ -139,6 +169,6 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: client.exe
+        asset_path: ./artifacts/client.exe
         asset_name: client-windows-x64.exe
         asset_content_type: application/octet-stream

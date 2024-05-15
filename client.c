@@ -2,12 +2,20 @@
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <fcntl.h>  // for open
-#include <unistd.h> // for close
 #include <pthread.h>
-#include <netdb.h>
+#ifdef _WIN32
+  #include <winsock2.h>
+  #include <ws2tcpip.h>
+  #pragma comment(lib, "ws2_32.lib")
+  typedef int socklen_t;
+  #define close closesocket
+#else
+  #include <sys/types.h>
+  #include <sys/socket.h>
+  #include <fcntl.h>  // for open
+  #include <unistd.h> // for close
+  #include <netdb.h>
+#endif
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
@@ -20,7 +28,7 @@ struct arg_struct
 
 volatile uint8_t sig_exit = 0;
 
-void siginthandler()
+void siginthandler(int signum)
 {
     sig_exit = 1;
 }
@@ -34,7 +42,12 @@ void write_to_sock(struct arg_struct *arg)
 
 int main(int argc, char *argv[])
 {
+#ifdef _WIN32
+    WSADATA wsa;
+    WSAStartup(MAKEWORD(2,2),&wsa);
+#else
     signal(SIGINT, siginthandler);
+#endif
 
     int xoffset = atoi(argv[2]);
     int yoffset = atoi(argv[3]);
@@ -85,6 +98,10 @@ int main(int argc, char *argv[])
     freeaddrinfo(server);
     free(buff);
     free(threads);
+
+#ifdef _WIN32
+    WSACleanup();
+#endif
 
     return 0;
 }

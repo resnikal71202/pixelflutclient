@@ -39,7 +39,12 @@ jobs:
 
     - name: Set up build environment on Windows
       if: matrix.os == 'windows-latest'
-      uses: ilammy/msvc-dev-cmd@v1
+      uses: msys2/setup-msys2@v2
+      with:
+        install: >-
+          mingw-w64-x86_64-gcc
+          mingw-w64-i686-gcc
+        msystem: MINGW64
 
     - name: Build for x86 on Linux and macOS
       if: matrix.arch == 'x64' && matrix.os != 'windows-latest'
@@ -55,8 +60,7 @@ jobs:
 
     - name: Build for x86 on Windows
       if: matrix.arch == 'x64' && matrix.os == 'windows-latest'
-      run: |
-        cl /W4 /O2 /Fe:client.exe client.c
+      run: gcc -Wall -O0 client.c -lm -lpthread -o client.exe
 
     - name: Skip ARM build on Windows
       if: matrix.arch == 'arm64' && matrix.os == 'windows-latest'

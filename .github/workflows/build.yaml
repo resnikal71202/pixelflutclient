@@ -86,89 +86,102 @@ jobs:
       uses: actions/download-artifact@v4
       with:
         name: ubuntu-latest-x64
-        path: ./artifacts
+        path: ./artifacts/ubuntu-latest-x64
 
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
         name: ubuntu-latest-arm64
-        path: ./artifacts
+        path: ./artifacts/ubuntu-latest-arm64
 
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
         name: macos-latest-x64
-        path: ./artifacts
+        path: ./artifacts/macos-latest-x64
 
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
         name: macos-latest-arm64
-        path: ./artifacts
+        path: ./artifacts/macos-latest-arm64
 
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
         name: windows-latest-x64
-        path: ./artifacts
+        path: ./artifacts/windows-latest-x64
+
+    - name: Get the current timestamp
+      id: vars
+      run: echo "RELEASE_TAG=release-$(date +%Y%m%d%H%M%S)" >> $GITHUB_ENV
+
+    - name: Delete existing release if it exists
+      uses: oktokit/request-action@v2.x
+      if: ${{ steps.create_release.outputs.failed }}
+      with:
+        route: DELETE /repos/:owner/:repo/releases/tags/:tag
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        tag: ${{ env.RELEASE_TAG }}
 
     - name: Create Release
       id: create_release
-      uses: actions/create-release@v1
+      uses: actions/create-release@v4
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: v1.0.0
-        release_name: Release v1.0.0
+        tag_name: ${{ env.RELEASE_TAG }}
+        release_name: Release ${{ env.RELEASE_TAG }}
         draft: false
         prerelease: false
 
     - name: Upload Linux x64 Build
-      uses: actions/upload-release-asset@v1
+      uses: actions/upload-release-asset@v4
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./artifacts/client
+        asset_path: ./artifacts/ubuntu-latest-x64/client
         asset_name: client-linux-x64
         asset_content_type: application/octet-stream
 
     - name: Upload Linux ARM64 Build
-      uses: actions/upload-release-asset@v1
+      uses: actions/upload-release-asset@v4
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./artifacts/client-arm
+        asset_path: ./artifacts/ubuntu-latest-arm64/client-arm
         asset_name: client-linux-arm64
         asset_content_type: application/octet-stream
 
     - name: Upload macOS x64 Build
-      uses: actions/upload-release-asset@v1
+      uses: actions/upload-release-asset@v4
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./artifacts/client
+        asset_path: ./artifacts/macos-latest-x64/client
         asset_name: client-macos-x64
         asset_content_type: application/octet-stream
 
     - name: Upload macOS ARM64 Build
-      uses: actions/upload-release-asset@v1
+      uses: actions/upload-release-asset@v4
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./artifacts/client-arm
+        asset_path: ./artifacts/macos-latest-arm64/client-arm
         asset_name: client-macos-arm64
         asset_content_type: application/octet-stream
 
     - name: Upload Windows x64 Build
-      uses: actions/upload-release-asset@v1
+      uses: actions/upload-release-asset@v4
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./artifacts/client.exe
+        asset_path: ./artifacts/windows-latest-x64/client.exe
         asset_name: client-windows-x64.exe
         asset_content_type: application/octet-stream

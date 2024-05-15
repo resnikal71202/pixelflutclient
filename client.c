@@ -27,10 +27,7 @@ void siginthandler()
 
 void write_to_sock(struct arg_struct *arg)
 {
-    while (!sig_exit)
-    {
-        write(arg->sockfd, arg->buf, arg->buflen);
-    }
+    write(arg->sockfd, arg->buf, arg->buflen);
     shutdown(arg->sockfd, 2);
     close(arg->sockfd);
 }
@@ -44,8 +41,9 @@ int main(int argc, char *argv[])
 
     int width, height, channels;
     unsigned char *img = stbi_load(argv[1], &width, &height, &channels, 0);
-    size_t bufflen = 0;
+    size_t bufflen = width * height * 25;
     char *buff = malloc(sizeof(char) * bufflen);
+    buff[0] = '\0';
 
     for (int x = 0; x <= width; x++)
     {
@@ -55,10 +53,7 @@ int main(int argc, char *argv[])
             if (img[(x + y * width) * channels] != 0 && img[(x + y * width) * channels + 1] != 0 && img[(x + y * width) * channels + 2] != 0)
             {
                 snprintf(temp, 25, "PX %d %d %02x%02x%02x\n", x + xoffset, y + yoffset, img[(x + y * width) * channels], img[(x + y * width) * channels + 1], img[(x + y * width) * channels + 2]);
-                int diff = strlen(temp);
-                bufflen += diff;
-                buff = realloc(buff, bufflen);
-                memcpy(&(buff[bufflen - diff]), &temp, diff);
+                strcat(buff, temp);
             }
         }
     }
@@ -69,20 +64,27 @@ int main(int argc, char *argv[])
     hints.ai_socktype = SOCK_STREAM;
     getaddrinfo(argv[4], argv[5], &hints, &server);
 
-    for (int i = strtol(argv[6], NULL, 10); i > 0; i--)
+    pthread_t *threads = malloc(sizeof(pthread_t) * strtol(argv[6], NULL, 10));
+
+    for (int i = 0; i < strtol(argv[6], NULL, 10); i++)
     {
-        pthread_t some_thread;
         struct arg_struct arg;
         int sockfd = socket(server->ai_family, server->ai_socktype, server->ai_protocol);
         connect(sockfd, server->ai_addr, server->ai_addrlen);
         arg.sockfd = sockfd;
         arg.buf = buff;
-        arg.buflen = bufflen;
-        pthread_create(&some_thread, NULL, (void *)&write_to_sock, &arg);
+        arg.buflen = strlen(buff);
+        pthread_create(&threads[i], NULL, (void *)&write_to_sock, &arg);
     }
 
-    while (!sig_exit)
+    for (int i = 0; i < strtol(argv[6], NULL, 10); i++)
     {
+        pthread_join(threads[i], NULL);
     }
 
+    freeaddrinfo(server);
+    free(buff);
+    free(threads);
+
+    return 0;
 }

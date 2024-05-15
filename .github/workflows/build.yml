@@ -40,12 +40,12 @@ jobs:
 
     - name: Build on Ubuntu
       if: matrix.os == 'ubuntu-latest'
-      run: gcc -Wall -O0 -pthread -o client client.c -I stb
+      run: gcc -Wall -O0 -pthread -o client client.c
 
     - name: Build on Windows
       if: matrix.os == 'windows-latest'
-      run: cl /EHsc /W4 /Od client.c /Fe:client.exe /I stb
+      run: cl /EHsc /W4 /Od client.c /Fe:client.exe
 
     - name: Build on macOS
       if: matrix.os == 'macos-latest'
-      run: gcc -Wall -O0 -pthread -o client client.c -I stb
+      run: gcc -Wall -O0 -pthread -o client client.c

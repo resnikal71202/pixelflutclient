@@ -17,7 +17,30 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Install dependencies
+    
+    - name: Set up dependencies on Ubuntu
+      if: matrix.os == 'ubuntu-latest'
       run: sudo apt-get install -y gcc-multilib g++-multilib
-    - name: Build
+    
+    - name: Set up dependencies on Windows
+      if: matrix.os == 'windows-latest'
+      run: |
+        choco install visualstudio2019community
+        choco install visualstudio2019-workload-vctools
+    
+    - name: Set up dependencies on macOS
+      if: matrix.os == 'macos-latest'
+      run: brew install gcc
+    
+    - name: Build on Ubuntu
+      if: matrix.os == 'ubuntu-latest'
+      run: gcc -Wall -O0 client.c
+    
+    - name: Build on Windows
+      if: matrix.os == 'windows-latest'
+      run: |
+        cl /EHsc /W4 /Od client.c
+    
+    - name: Build on macOS
+      if: matrix.os == 'macos-latest'
       run: gcc -Wall -O0 client.c

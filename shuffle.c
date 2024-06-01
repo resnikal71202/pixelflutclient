@@ -8,6 +8,7 @@
 #include <unistd.h> // for close
 #include <pthread.h>
 #include <netdb.h>
+#include <time.h>   // for srand and rand
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 
@@ -34,12 +35,14 @@ int reconnect(struct arg_struct *arg)
     int sockfd = socket(arg->server->ai_family, arg->server->ai_socktype, arg->server->ai_protocol);
     if (sockfd == -1)
     {
+        reconnect(arg);
         perror("socket");
         return -1;
     }
 
     if (connect(sockfd, arg->server->ai_addr, arg->server->ai_addrlen) == -1)
     {
+        reconnect(arg);
         perror("connect");
         close(sockfd);
         return -1;
@@ -70,6 +73,20 @@ void *write_to_sock(void *args)
     return NULL;
 }
 
+void shuffle(int *array, size_t n)
+{
+    if (n > 1)
+    {
+        for (size_t i = 0; i < n - 1; i++)
+        {
+            size_t j = i + rand() / (RAND_MAX / (n - i) + 1);
+            int t = array[j];
+            array[j] = array[i];
+            array[i] = t;
+        }
+    }
+}
+
 int main(int argc, char *argv[])
 {
     if (argc != 7)
@@ -92,49 +109,71 @@ int main(int argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    size_t bufflen = 0;
-    size_t buffcap = 1024;
-    char *buff = malloc(buffcap);
-    if (!buff)
+    // Initialize random seed
+    srand(time(NULL));
+
+    int num_pixels = width * height;
+    int *pixel_indices = malloc(num_pixels * sizeof(int));
+    if (!pixel_indices)
     {
         fprintf(stderr, "Memory allocation error\n");
         stbi_image_free(img);
         return EXIT_FAILURE;
     }
 
-    for (int x = 0; x < width; x++)
+    for (int i = 0; i < num_pixels; i++)
     {
-        for (int y = 0; y < height; y++)
-        {
-            if (img[(x + y * width) * channels] != 0 ||
-                img[(x + y * width) * channels + 1] != 0 ||
-                img[(x + y * width) * channels + 2] != 0)
-            {
-                char temp[25];
-                snprintf(temp, 25, "PX %d %d %02x%02x%02x\n", x + xoffset, y + yoffset,
-                         img[(x + y * width) * channels],
-                         img[(x + y * width) * channels + 1],
-                         img[(x + y * width) * channels + 2]);
+        pixel_indices[i] = i;
+    }
 
-                size_t diff = strlen(temp);
-                if (bufflen + diff > buffcap)
+    shuffle(pixel_indices, num_pixels);
+
+    size_t bufflen = 0;
+    size_t buffcap = 1024;
+    char *buff = malloc(buffcap);
+    if (!buff)
+    {
+        fprintf(stderr, "Memory allocation error\n");
+        free(pixel_indices);
+        stbi_image_free(img);
+        return EXIT_FAILURE;
+    }
+
+    for (int i = 0; i < num_pixels; i++)
+    {
+        int index = pixel_indices[i];
+        int x = index % width;
+        int y = index / width;
+        if (img[(x + y * width) * channels] != 0 ||
+            img[(x + y * width) * channels + 1] != 0 ||
+            img[(x + y * width) * channels + 2] != 0)
+        {
+            char temp[25];
+            snprintf(temp, 25, "PX %d %d %02x%02x%02x\n", x + xoffset, y + yoffset,
+                     img[(x + y * width) * channels],
+                     img[(x + y * width) * channels + 1],
+                     img[(x + y * width) * channels + 2]);
+
+            size_t diff = strlen(temp);
+            if (bufflen + diff > buffcap)
+            {
+                buffcap *= 2;
+                char *new_buff = realloc(buff, buffcap);
+                if (!new_buff)
                 {
-                    buffcap *= 2;
-                    char *new_buff = realloc(buff, buffcap);
-                    if (!new_buff)
-                    {
-                        free(buff);
-                        stbi_image_free(img);
-                        return EXIT_FAILURE;
-                    }
-                    buff = new_buff;
+                    free(buff);
+                    free(pixel_indices);
+                    stbi_image_free(img);
+                    return EXIT_FAILURE;
                 }
-                memcpy(&(buff[bufflen]), temp, diff);
-                bufflen += diff;
+                buff = new_buff;
             }
+            memcpy(&(buff[bufflen]), temp, diff);
+            bufflen += diff;
         }
     }
     stbi_image_free(img);
+    free(pixel_indices);
 
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_UNSPEC;
@@ -154,16 +193,7 @@ int main(int argc, char *argv[])
         int sockfd = socket(server->ai_family, server->ai_socktype, server->ai_protocol);
         if (sockfd == -1)
         {
-            perror("socket");
-            free(buff);
-            freeaddrinfo(server);
-            return EXIT_FAILURE;
-        }
-
-        if (connect(sockfd, server->ai_addr, server->ai_addrlen) == -1)
-        {
-            perror("connect");
-            close(sockfd);
+            perror("socket init failed");
             free(buff);
             freeaddrinfo(server);
             return EXIT_FAILURE;
@@ -183,6 +213,16 @@ int main(int argc, char *argv[])
         arg->buflen = bufflen;
         arg->server = server;
 
+        if (connect(sockfd, server->ai_addr, server->ai_addrlen) == -1)
+        {
+            reconnect(arg);
+            perror("connect");
+            close(sockfd);
+            free(buff);
+            freeaddrinfo(server);
+            return EXIT_FAILURE;
+        }
+
         if (pthread_create(&threads[i], NULL, write_to_sock, arg) != 0)
         {
             perror("pthread_create");
@@ -194,9 +234,9 @@ int main(int argc, char *argv[])
         }
     }
 
-    for (int i = 0; i < num_threads; i++)
+    for (int I = 0; I < num_threads; I++)
     {
-        pthread_join(threads[i], NULL);
+        pthread_join(threads[I], NULL);
     }
 
     free(buff);
